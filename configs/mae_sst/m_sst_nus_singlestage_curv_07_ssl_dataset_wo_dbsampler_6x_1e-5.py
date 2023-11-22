@@ -256,7 +256,7 @@ eval_pipeline = [
 
 
 data = dict(
-    samples_per_gpu=4,
+    samples_per_gpu=1,
     workers_per_gpu=4,
     train=dict(
         type=dataset_type,
@@ -287,6 +287,6 @@ data = dict(
         box_type_3d='LiDAR'))
 
 lr = 1e-5
-runner = dict(type='EpochBasedRunner', max_epochs=72)
+runner = dict(type='EpochBasedRunner', max_epochs=24)
 evaluation = dict(interval=100, pipeline=eval_pipeline)
 

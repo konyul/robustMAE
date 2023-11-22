@@ -5,7 +5,7 @@ from mmdet3d.core.bbox import BaseInstance3DBoxes
 from mmdet3d.core.points import BasePoints
 from mmdet.datasets.builder import PIPELINES
 from mmdet.datasets.pipelines import to_tensor
-
+import torch
 PIPELINES._module_dict.pop('DefaultFormatBundle')
 
 
@@ -40,15 +40,21 @@ class DefaultFormatBundle(object):
             dict: The result dict contains the data that is formatted with
                 default bundle.
         """
+        # if 'img' in results:
+        #     if isinstance(results['img'], list):
+        #         # process multiple imgs in single frame
+        #         imgs = [img.transpose(2, 0, 1) for img in results['img']]
+        #         imgs = np.ascontiguousarray(np.stack(imgs, axis=0))
+        #         results['img'] = DC(to_tensor(imgs), stack=True)
+        #     else:
+        #         img = np.ascontiguousarray(results['img'].transpose(2, 0, 1))
+        #         results['img'] = DC(to_tensor(img), stack=True)
         if 'img' in results:
             if isinstance(results['img'], list):
                 # process multiple imgs in single frame
-                imgs = [img.transpose(2, 0, 1) for img in results['img']]
-                imgs = np.ascontiguousarray(np.stack(imgs, axis=0))
-                results['img'] = DC(to_tensor(imgs), stack=True)
+                results['img'] = DC(torch.stack(results['img']), stack=True)
             else:
-                img = np.ascontiguousarray(results['img'].transpose(2, 0, 1))
-                results['img'] = DC(to_tensor(img), stack=True)
+                results['img'] = DC(results['img'], stack=True)
         for key in [
                 'proposals', 'gt_bboxes', 'gt_bboxes_ignore', 'gt_labels',
                 'gt_labels_3d', 'attr_labels', 'pts_instance_mask',

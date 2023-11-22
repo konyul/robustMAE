@@ -11,9 +11,10 @@ from .hrnet import HRNet3D
 from .mae_sst_v1 import MAESST
 from .sst_use_mae_pretrained_v1 import SSTPretrained
 
-
+from .swin import MAESwinEncoder
 
 from .multi_mae_sst_spearate_top_only import MultiMAESSTSPChoose
+from .multi_mae_sst_spearate_top_only_fuse import MultiMAESSTSPChooseFusion
 from .sst_second_v1 import SSTSecondv1
 from .sst_multi_stage_v1 import SSTMultiStagev1
 from .sst_multi_stage_second_v1 import SSTMultiStageSecondv1
@@ -23,6 +24,6 @@ from .sst_second_pretrained_v1 import SSTSecondPretrainedv1
 
 __all__ = [
     'ResNet', 'ResNetV1d', 'ResNeXt', 'SSDVGG', 'HRNet', 'NoStemRegNet',
-    'SECOND', 'PointNet2SASSG', 'PointNet2SAMSG', 'MultiBackbone', 'HRNet3D',
+    'SECOND', 'PointNet2SASSG', 'PointNet2SAMSG', 'MultiBackbone', 'HRNet3D','MAESwinEncoder'
 ]
 

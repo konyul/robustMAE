@@ -19,7 +19,7 @@ from .roiaware_pool3d import (RoIAwarePool3d, points_in_boxes_batch,
                               points_in_boxes_cpu, points_in_boxes_gpu)
 from .sparse_block import (SparseBasicBlock, SparseBottleneck,
                                make_sparse_convmodule)
-from .voxel import DynamicScatter, Voxelization, dynamic_scatter, voxelization,Voxelization_with_flag
+from .voxel import DynamicScatter, Voxelization, dynamic_scatter, voxelization, Voxelization_with_flag
 # from .sst.sst_ops import flat2window, window2flat, get_inner_win_inds, get_flat2win_inds, SRATensor
 from .sst.sst_ops import (flat2window, window2flat, SRATensor, DebugSRATensor,
     get_flat2win_inds, get_inner_win_inds, make_continuous_inds,

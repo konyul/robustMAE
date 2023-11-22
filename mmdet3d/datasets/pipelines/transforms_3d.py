@@ -9,7 +9,150 @@ from mmdet.datasets.builder import PIPELINES
 from mmdet.datasets.pipelines import RandomFlip
 from ..builder import OBJECTSAMPLERS
 from .data_augment_utils import noise_per_object_v3_
+import torch
+from PIL import Image
+from typing import Dict, Any
+import torchvision
 
+@PIPELINES.register_module()
+class ImageAug3D:
+    def __init__(
+        self, final_dim, resize_lim, bot_pct_lim, rand_flip, is_train, interpolation='bicubic',
+    ):
+        self.final_dim = final_dim
+        self.resize_lim = resize_lim
+        self.bot_pct_lim = bot_pct_lim
+        self.rand_flip = rand_flip
+        self.is_train = is_train
+
+        self.scale = (0.2, 1.0)
+        self.ratio = (3. / 4., 4. / 3.)
+        self.max_attempts = 10
+        interpolation_dict = dict(
+            nearest=0, 
+            lanczos=1,
+            bilinear=2, 
+            bicubic=3,           
+        )
+        self.interpolation = interpolation_dict[interpolation]
+
+    def sample_augmentation(self, results):
+        
+        W, H = results["ori_shape"]
+        fH, fW = self.final_dim
+        if self.is_train:
+            resize = np.random.uniform(*self.resize_lim)
+            resize_dims = (int(W * resize), int(H * resize))
+            newW, newH = resize_dims
+            crop_h = int((1 - np.random.uniform(*self.bot_pct_lim)) * newH) - fH
+            crop_w = int(np.random.uniform(0, max(0, newW - fW)))
+            crop = (crop_w, crop_h, crop_w + fW, crop_h + fH)
+            flip = False
+            if self.rand_flip and np.random.choice([0, 1]):
+                flip = True
+        else:
+            resize = np.mean(self.resize_lim)
+            resize_dims = (int(W * resize), int(H * resize))
+            newW, newH = resize_dims
+            crop_h = int((1 - np.mean(self.bot_pct_lim)) * newH) - fH
+            crop_w = int(max(0, newW - fW) / 2)
+            crop = (crop_w, crop_h, crop_w + fW, crop_h + fH)
+            flip = False
+        return resize, resize_dims, crop, flip
+
+    def img_transform(
+        self, img, rotation, translation, resize, resize_dims, crop, flip
+    ):
+        # adjust image
+        img = img.resize(resize_dims, 3)
+        img = img.crop(crop)
+        if flip:
+            img = img.transpose(method=Image.FLIP_LEFT_RIGHT)
+
+        # post-homography transformation
+        rotation *= resize
+        translation -= torch.Tensor(crop[:2])
+        
+        if flip:
+            A = torch.Tensor([[-1, 0], [0, 1]])
+            b = torch.Tensor([crop[2] - crop[0], 0])
+            rotation = A.matmul(rotation)
+            translation = A.matmul(translation) + b
+        theta = 0.
+        A = torch.Tensor(
+            [
+                [np.cos(theta), np.sin(theta)],
+                [-np.sin(theta), np.cos(theta)],
+            ]
+        )
+        b = torch.Tensor([crop[2] - crop[0], crop[3] - crop[1]]) / 2
+        b = A.matmul(-b) + b
+        rotation = A.matmul(rotation)
+        translation = A.matmul(translation) + b
+        
+        return img, rotation, translation
+
+    def __call__(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        imgs = data["img"]
+        new_imgs = []
+        imgs_aug = []
+        transforms = []
+        depth_maps = []
+        depths = []
+        for idx, img in enumerate(imgs):
+            resize, resize_dims, crop, flip = self.sample_augmentation(data)
+            post_rot = torch.eye(2)
+            post_tran = torch.zeros(2)
+            new_img, rotation, translation = self.img_transform(
+                img,
+                post_rot,
+                post_tran,
+                resize,
+                resize_dims=resize_dims,
+                crop=crop,
+                flip=flip,
+            )
+            
+            transform = torch.eye(4)
+            transform[:2, :2] = rotation
+            transform[:2, 3] = translation
+            
+            new_imgs.append(new_img)
+            imgs_aug.append({'resize_dims': resize_dims,
+                    'resize': resize,
+                    'crop': crop,
+                    'flip': flip})
+            transforms.append(transform.numpy())
+                
+        data["img"] = new_imgs
+        data["img_shape"] = new_imgs[0].size
+        if "depth_maps" in data:
+            data["depth_maps"] = depth_maps
+        if "depths" in data:
+            data["depths"] = np.concatenate(depths)
+        # update the calibration matrices
+        data["img_aug_matrix"] = transforms
+        data["imgs_aug"] = imgs_aug
+        return data
+    
+
+@PIPELINES.register_module()
+class ImageNormalize:
+    def __init__(self, mean, std):
+        self.mean = mean
+        self.std = std
+        self.compose = torchvision.transforms.Compose(
+            [
+                torchvision.transforms.ToTensor(),
+                torchvision.transforms.Normalize(mean=mean, std=std),
+            ]
+        )
+
+    def __call__(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        data["img_ori"] = data["img"]
+        data["img"] = [self.compose(img) for img in data["img"]]
+        data["img_norm_cfg"] = dict(mean=self.mean, std=self.std)
+        return data
 
 @PIPELINES.register_module()
 class RandomDropPointsColor(object):

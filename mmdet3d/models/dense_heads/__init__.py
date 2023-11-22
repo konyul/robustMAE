@@ -12,10 +12,11 @@ from .ssd_3d_head import SSD3DHead
 from .vote_head import VoteHead
 from .centerpoint_head_waymo import CenterHeadWaymo
 from .centerpoint_head_iou import CenterHeadIoU
+from .swin_decoder import MAESwinDecoder
 
 __all__ = [
     'Anchor3DHead', 'FreeAnchor3DHead', 'PartA2RPNHead', 'VoteHead',
     'SSD3DHead', 'BaseConvBboxHead', 'CenterHead', 'ShapeAwareHead',
     'BaseMono3DDenseHead', 'AnchorFreeMono3DHead', 'FCOSMono3DHead',
-    'GroupFree3DHead'
+    'GroupFree3DHead', 'MAESwinDecoder'
 ]

@@ -239,9 +239,9 @@ class MultiMAESSTSPChoose(nn.Module):
         masked_start_id=coors.shape[0]
         mask_tokens = self.mask_token.repeat(coors_mask.shape[0], 1)
         # print(voxel_feat.shape,mask_tokens.shape)
-        voxel_feat_ = torch.cat([visible_voxel_feat,mask_tokens],dim=0)
+        voxel_feat_ = torch.cat([visible_voxel_feat,mask_tokens],dim=0) # visible_voxel_feat : visible_token
         coors_ = torch.cat([coors,coors_mask],dim=0)
-        voxel_feat, ind_dict_list, voxel_info = self.get_voxel_info(voxel_feat_,coors_,batch_size)
+        voxel_feat, ind_dict_list, voxel_info = self.get_voxel_info(voxel_feat_,coors_,batch_size) # voxel_feat : all_token
 
         assert voxel_info['coors'].dtype == torch.int64, 'data type of coors should be torch.int64!'
         self.set_drop_info()
